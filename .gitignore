@@ -1,0 +1,14 @@
+# Compiled binary
+/crm
+
+# Runtime data (journal logs)
+/data/
+
+# Editor / OS
+.DS_Store
+
+# Local-only Claude settings (not shared)
+.claude/settings.local.json
+
+# Runtime lock file
+.claude/scheduled_tasks.lock

@@ -1,0 +1,902 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f6f7f9">
+<title>CRM — จัดการลูกค้าและสัญญาบริการ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* =================== design tokens =================== */
+:root {
+  color-scheme: light;
+  --page:#f6f7f9; --surface:#ffffff; --surface2:#f1f3f5; --surface3:#f8f9fb;
+  --ink:#1c232b; --ink2:#475059; --muted:#7a828c;
+  --line:#e6e8ec; --border:rgba(15,23,42,.08);
+  --accent:#0d9488; --accent-strong:#0f766e; --accent-soft:#ccfbf1; --accent-ink:#115e59;
+  --good:#059669; --good-soft:#d1fae5; --good-ink:#065f46;
+  --warn:#b45309; --warn-soft:#fef3c7; --warn-ink:#8a5300;
+  --crit:#dc2626; --crit-soft:#fee2e2; --crit-ink:#9b1c1c;
+  --info-soft:#cffafe; --info-ink:#155e75;
+  --ring:0 0 0 3px rgba(13,148,136,.22);
+  --shadow-sm:0 1px 2px rgba(16,24,40,.05);
+  --shadow-md:0 1px 2px rgba(16,24,40,.05),0 3px 8px rgba(16,24,40,.06);
+  --radius:12px; --radius-sm:8px;
+  --font-sans:'IBM Plex Sans Thai',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',monospace;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page:#0f1419; --surface:#171d24; --surface2:#12171d; --surface3:#1c242d;
+  --ink:#e6eaf0; --ink2:#a9b1bc; --muted:#7c848e;
+  --line:#262d36; --border:rgba(255,255,255,.08);
+  --accent:#2dd4bf; --accent-strong:#5eead4; --accent-soft:#0f3d3a; --accent-ink:#5eead4;
+  --good:#34d399; --good-soft:#0f3d2e; --good-ink:#6ee7b7;
+  --warn:#fbbf24; --warn-soft:#402d12; --warn-ink:#fcd34d;
+  --crit:#f87171; --crit-soft:#3f1d1d; --crit-ink:#fca5a5;
+  --info-soft:#123a40; --info-ink:#67e8f9;
+  --ring:0 0 0 3px rgba(45,212,191,.25);
+  --shadow-sm:none; --shadow-md:0 1px 2px rgba(0,0,0,.3);
+}
+* { box-sizing:border-box; }
+html { -webkit-text-size-adjust:100%; }
+body {
+  margin:0; font-family:var(--font-sans); background:var(--page); color:var(--ink);
+  font-size:14.5px; line-height:1.55;
+}
+h1,h2,h3,h4 { margin:0; font-weight:600; }
+a { color:var(--accent); }
+button { font:inherit; cursor:pointer; }
+.ic { vertical-align:-2px; flex:none; }
+.muted { color:var(--muted); font-size:13px; }
+.grow { flex:1; }
+.num { font-variant-numeric:tabular-nums; }
+
+/* ---------- focus ---------- */
+:focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
+
+/* =================== shell / sidebar =================== */
+.shell { display:flex; min-height:100vh; }
+.sidebar {
+  width:240px; flex:none; background:var(--surface); border-right:1px solid var(--line);
+  display:flex; flex-direction:column; position:sticky; top:0; height:100vh; overflow:auto;
+}
+.brand { display:flex; align-items:center; gap:9px; padding:18px 18px 14px; font-weight:700; font-size:16px; letter-spacing:.2px; }
+.brand .dot { width:10px; height:10px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+.brand small { color:var(--muted); font-weight:500; font-size:11.5px; margin-left:auto; }
+.nav { padding:4px 10px; flex:1; }
+.nav-group { margin-bottom:14px; }
+.nav-label { font-size:11px; color:var(--muted); padding:8px 10px 4px; }
+.nav-item {
+  display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+  background:none; border:none; border-radius:var(--radius-sm); padding:8px 10px;
+  color:var(--ink2); font-size:14px; position:relative;
+}
+.nav-item:hover { background:var(--surface2); color:var(--ink); }
+.nav-item.on { background:var(--accent-soft); color:var(--accent-ink); font-weight:600; }
+.nav-item.on::before { content:''; position:absolute; left:0; top:14%; bottom:14%; width:3px; border-radius:2px; background:var(--accent); }
+.sidebar-foot { border-top:1px solid var(--line); padding:12px 14px; display:flex; align-items:center; gap:8px; }
+.userbox { display:flex; align-items:center; gap:10px; flex:1; min-width:0; }
+.avatar { width:34px; height:34px; border-radius:50%; background:var(--accent-soft); color:var(--accent-ink);
+  display:flex; align-items:center; justify-content:center; font-weight:600; flex:none; }
+.userbox .who { min-width:0; }
+.userbox .who .nm { font-size:13.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.userbox .who .rl { font-size:11.5px; color:var(--muted); }
+.health { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); }
+.health .pulse { position:relative; width:8px; height:8px; border-radius:50%; background:var(--good); }
+.health .pulse::after { content:''; position:absolute; inset:-3px; border-radius:50%; background:var(--good); opacity:.35; animation:pulse 2s infinite; }
+@keyframes pulse { 0%{transform:scale(.6);opacity:.5} 100%{transform:scale(1.4);opacity:0} }
+
+/* =================== content =================== */
+.content { flex:1; min-width:0; }
+main { max-width:1160px; margin:0 auto; padding:26px 28px 80px; }
+.view { display:none; } .view.on { display:block; }
+.page-head { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:18px; }
+.page-head h1 { font-size:22px; font-weight:650; margin-right:auto; }
+h1 { font-weight:650; }
+.mb { margin-bottom:16px; }
+
+/* ---------- toolbar (search/filter) ---------- */
+.toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.search { position:relative; }
+.search input { padding-left:34px; }
+.search .ic { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--muted); pointer-events:none; }
+
+/* ---------- buttons ---------- */
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  border:1px solid transparent; border-radius:var(--radius-sm); padding:0 14px; height:40px;
+  font-size:14px; font-weight:500; background:transparent; color:var(--ink);
+  transition:background .15s,border-color .15s,color .15s; touch-action:manipulation; }
+.btn:disabled { opacity:.55; cursor:default; }
+.btn .bt { display:inline-flex; align-items:center; }
+.btn-primary { background:var(--accent); color:#fff; }
+.btn-primary:hover { background:var(--accent-strong); }
+.btn-secondary { background:var(--surface); border-color:var(--line); }
+.btn-secondary:hover { background:var(--surface2); }
+.btn-ghost { color:var(--ink2); }
+.btn-ghost:hover { background:var(--surface2); color:var(--ink); }
+.btn-danger { color:var(--crit); }
+.btn-danger:hover { background:var(--crit-soft); }
+.btn-sm { height:36px; padding:0 12px; font-size:13.5px; }
+.btn-xs { height:30px; padding:0 9px; font-size:12.5px; border-radius:6px; }
+.btn-icon { width:38px; height:38px; padding:0; border-radius:var(--radius-sm); }
+.btn-icon.btn-xs { width:30px; height:30px; }
+.spin { width:14px; height:14px; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ---------- inputs ---------- */
+.field { margin-bottom:14px; }
+.field label { display:block; font-size:12.5px; font-weight:600; color:var(--ink2); margin-bottom:5px; }
+.field label .req { color:var(--crit); }
+input,select,textarea { font:inherit; color:var(--ink); background:var(--surface);
+  border:1px solid var(--line); border-radius:var(--radius-sm); padding:0 11px; height:40px; width:100%; transition:border-color .15s, box-shadow .15s; }
+textarea { padding:9px 11px; height:auto; resize:vertical; min-height:68px; }
+input::placeholder,textarea::placeholder { color:var(--muted); }
+input:focus,select:focus,textarea:focus { outline:none; border-color:var(--accent); box-shadow:var(--ring); }
+select { appearance:none; -webkit-appearance:none; background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 17px) 50%,calc(100% - 12px) 50%; background-size:5px 5px,5px 5px; background-repeat:no-repeat; padding-right:30px; }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0 16px; }
+.grid2 .full { grid-column:1/-1; }
+
+/* ---------- cards ---------- */
+.card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow-sm); padding:18px 20px; margin-bottom:18px; }
+.card-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+.card-head h2 { font-size:15px; font-weight:600; margin-right:auto; }
+
+/* ---------- stat tiles ---------- */
+.tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:20px; }
+.tile { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px; box-shadow:var(--shadow-sm); position:relative; overflow:hidden; }
+.tile .t-ic { width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; margin-bottom:12px; background:var(--accent-soft); color:var(--accent-ink); }
+.tile .t-lab { font-size:12.5px; color:var(--ink2); }
+.tile .t-val { font-size:30px; font-weight:650; line-height:1.15; font-variant-numeric:tabular-nums; margin-top:2px; }
+.tile.warn .t-ic { background:var(--warn-soft); color:var(--warn-ink); }
+.tile.crit .t-ic { background:var(--crit-soft); color:var(--crit-ink); }
+.tile.good .t-ic { background:var(--good-soft); color:var(--good-ink); }
+.tile .t-sub { font-size:12px; color:var(--muted); margin-top:6px; }
+
+/* ---------- tables ---------- */
+.table-wrap { overflow-x:auto; margin:0 -4px; }
+table { width:100%; border-collapse:collapse; }
+th { text-align:left; font-size:12px; color:var(--muted); font-weight:600; border-bottom:1px solid var(--line); padding:10px 12px; white-space:nowrap; }
+td { border-bottom:1px solid var(--line); padding:12px; vertical-align:middle; }
+tbody tr:last-child td { border-bottom:none; }
+tbody tr:hover { background:var(--surface3); }
+td .sub { color:var(--muted); font-size:12.5px; }
+td .num, td.num { font-variant-numeric:tabular-nums; }
+.t-actions { display:flex; gap:5px; justify-content:flex-end; white-space:nowrap; }
+.cell-main { font-weight:600; }
+.money { font-variant-numeric:tabular-nums; font-family:var(--font-mono); white-space:nowrap; }
+
+/* ---------- badges / chips ---------- */
+.badge { display:inline-flex; align-items:center; gap:6px; font-size:12.5px; white-space:nowrap; }
+.badge i, .chip i { width:8px; height:8px; border-radius:50%; flex:none; }
+.b-good i { background:var(--good); } .b-good { color:var(--good-ink); }
+.b-warn i { background:var(--warn); } .b-warn { color:var(--warn-ink); }
+.b-crit i { background:var(--crit); } .b-crit { color:var(--crit-ink); }
+.b-info i { background:var(--accent); } .b-info { color:var(--info-ink); }
+.chip { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; line-height:1; border-radius:999px; padding:4px 9px; white-space:nowrap; }
+.chip.c-good { background:var(--good-soft); color:var(--good-ink); }
+.chip.c-warn { background:var(--warn-soft); color:var(--warn-ink); }
+.chip.c-crit { background:var(--crit-soft); color:var(--crit-ink); }
+.chip.c-info { background:var(--info-soft); color:var(--info-ink); }
+.chip.c-neutral { background:var(--surface2); color:var(--ink2); }
+.svc-status { display:flex; gap:5px; flex-wrap:wrap; }
+.kind { font-size:11.5px; background:var(--surface2); border:1px solid var(--line); border-radius:6px; padding:1px 7px; color:var(--ink2); }
+
+/* ---------- empty / skeleton ---------- */
+.empty { padding:26px 12px; text-align:center; color:var(--muted); }
+.empty .e-ic { width:52px; height:52px; border-radius:14px; background:var(--surface2); color:var(--muted); display:flex; align-items:center; justify-content:center; margin:0 auto 12px; }
+.empty .e-t { font-weight:600; color:var(--ink2); font-size:14.5px; }
+.empty .e-s { font-size:12.5px; margin-top:4px; }
+.skel { position:relative; overflow:hidden; background:var(--surface2); border-radius:6px; }
+.skel::after { content:''; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg,transparent,var(--surface3),transparent); animation:shimmer 1.4s infinite; }
+@keyframes shimmer { 100% { transform:translateX(100%); } }
+.skel-row td { padding:14px 12px; }
+.skel-block { height:12px; }
+.skel-line { height:12px; margin:8px 0; }
+
+/* ---------- journal / agents ---------- */
+.journalItem, .agentCard { display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+.journalItem:last-child, .agentCard:last-child { border-bottom:none; }
+.journalItem time { color:var(--muted); font-size:12px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+
+/* ---------- report bars ---------- */
+.rpt-bar-row { display:grid; grid-template-columns:minmax(110px,1fr) 2fr 46px; gap:12px; align-items:center; padding:8px 0; border-bottom:1px solid var(--line); }
+.rpt-bar-row:last-child { border-bottom:none; }
+.rpt-bar-name { font-size:13.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rpt-bar-track { background:var(--surface2); border-radius:6px; height:14px; overflow:hidden; }
+.rpt-bar-fill { height:100%; background:var(--accent); border-radius:6px; min-width:2px; }
+.rpt-bar-count { text-align:right; font-variant-numeric:tabular-nums; color:var(--ink2); }
+
+/* =================== modal (small) =================== */
+#modalWrap { position:fixed; inset:0; background:rgba(15,20,25,.45); display:none; align-items:flex-start; justify-content:center; padding:7vh 16px; overflow:auto; z-index:60; }
+#modalWrap.on { display:flex; }
+#modal { background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-md); width:min(460px,100%); padding:0; overflow:hidden; animation:pop .18s ease; }
+@keyframes pop { from { transform:translateY(10px); opacity:0; } to { transform:none; opacity:1; } }
+#modal .m-head { padding:18px 22px 0; }
+#modal h2 { font-size:17px; font-weight:650; }
+#modal .m-body { padding:12px 22px 20px; }
+#modal .m-foot { display:flex; justify-content:flex-end; gap:8px; padding:0 22px 20px; }
+
+/* =================== drawer (long forms) =================== */
+#drawerWrap { position:fixed; inset:0; background:rgba(15,20,25,.4); display:none; z-index:70; }
+#drawerWrap.on { display:block; }
+#drawer { position:absolute; top:0; right:0; height:100vh; width:min(600px,100%); background:var(--surface); box-shadow:-4px 0 30px rgba(0,0,0,.15); display:flex; flex-direction:column; overscroll-behavior:contain; animation:slide .2s ease; }
+@keyframes slide { from { transform:translateX(30px); opacity:0; } to { transform:none; opacity:1; } }
+.d-head { padding:18px 24px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; }
+.d-head h2 { font-size:17px; font-weight:650; margin-right:auto; }
+.d-body { padding:20px 24px; overflow:auto; flex:1; }
+.d-foot { padding:16px 24px; border-top:1px solid var(--line); display:flex; justify-content:flex-end; gap:8px; }
+.svcBox { border:1px solid var(--line); border-radius:10px; padding:12px; margin-top:8px; }
+.svcRow { display:grid; grid-template-columns:1.2fr 1.2fr 1fr 1fr .8fr .8fr auto; gap:8px; margin-bottom:8px; align-items:end; }
+.svcRow input { height:36px; padding:0 8px; font-size:13px; }
+.svcRow label { font-size:11px; color:var(--muted); display:block; margin-bottom:2px; font-weight:500; }
+
+/* ---------- toast ---------- */
+.toast { position:fixed; bottom:22px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--page); border-radius:10px; padding:11px 18px; font-size:14px; opacity:0; pointer-events:none; transition:opacity .2s; z-index:99; box-shadow:var(--shadow-md); }
+.toast.on { opacity:1; }
+
+/* ---------- login ---------- */
+#loginView { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+#loginCard { width:min(400px,100%); }
+#loginCard h1 { font-size:22px; font-weight:650; display:flex; align-items:center; gap:9px; }
+#loginCard h1 .dot { width:11px; height:11px; border-radius:50%; background:var(--accent); }
+#loginCard .p { color:var(--ink2); margin:6px 0 22px; font-size:14px; }
+#loginErr { color:var(--crit-ink); background:var(--crit-soft); border-radius:8px; padding:8px 12px; font-size:13px; margin-bottom:14px; display:none; }
+#loginErr.on { display:block; }
+.login-wrap { display:flex; align-items:center; gap:14px; margin-bottom:18px; }
+.login-wrap .input-wrap { flex:1; }
+.login-wrap label { display:block; font-size:12.5px; font-weight:600; color:var(--ink2); margin-bottom:5px; }
+
+/* ---------- responsive ---------- */
+@media (max-width:900px) {
+  .shell { flex-direction:column; }
+  .sidebar { width:100%; height:auto; position:static; border-right:none; border-bottom:1px solid var(--line); }
+  .nav { display:flex; flex-wrap:wrap; gap:4px; }
+  .nav-group { margin-bottom:0; display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
+  .nav-label { padding:6px 8px; }
+  .nav-item { width:auto; }
+  .nav-item.on::before { display:none; }
+  .grid2 { grid-template-columns:1fr; }
+  main { padding:20px 16px 60px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  *,*::before,*::after { animation-duration:.001s !important; transition-duration:.001s !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN ================= -->
+<section id="loginView" style="display:none">
+  <div class="card" id="loginCard">
+    <h1>CRM <span class="dot"></span> <small class="muted" style="font-weight:500">multi-agent</small></h1>
+    <p class="p">ระบบจัดการลูกค้าและสัญญาบริการ</p>
+    <div id="loginErr"></div>
+    <div class="login-wrap">
+      <div class="input-wrap"><label for="liUser">ชื่อผู้ใช้</label><input id="liUser" autocomplete="username" spellcheck="false"></div>
+    </div>
+    <div class="login-wrap" style="margin-bottom:22px">
+      <div class="input-wrap"><label for="liPass">รหัสผ่าน</label><input id="liPass" type="password" autocomplete="current-password"></div>
+    </div>
+    <button class="btn btn-primary" id="liBtn" style="width:100%">เข้าสู่ระบบ</button>
+  </div>
+</section>
+
+<!-- ================= APP ================= -->
+<div id="appView" style="display:none">
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">CRM <span class="dot"></span> <small>multi-agent</small></div>
+    <nav id="nav" class="nav" aria-label="เมนูหลัก"></nav>
+    <div class="sidebar-foot">
+      <div class="userbox">
+        <span class="avatar" id="meAvatar">?</span>
+        <div class="who"><div class="nm" id="meName">…</div><div class="rl" id="meRole"></div></div>
+      </div>
+      <button class="btn btn-icon" id="themeBtn" title="สลับโหมดสี" aria-label="สลับโหมดสี"></button>
+      <button class="btn btn-icon btn-xs" id="logoutBtn" title="ออกจากระบบ" aria-label="ออกจากระบบ"></button>
+    </div>
+  </aside>
+
+  <div class="content">
+    <main>
+      <!-- แดชบอร์ด -->
+      <section class="view on" id="v-dash">
+        <div class="page-head"><h1>แดชบอร์ด</h1></div>
+        <div class="tiles">
+          <div class="tile"><div class="t-ic" id="ic-all"></div><div class="t-lab">บริการทั้งหมด</div><div class="t-val" id="st-all">–</div></div>
+          <div class="tile good"><div class="t-ic" id="ic-active"></div><div class="t-lab">ใช้งานอยู่</div><div class="t-val" id="st-active">–</div></div>
+          <div class="tile warn"><div class="t-ic" id="ic-expiring"></div><div class="t-lab">ใกล้หมดอายุ (≤30 วัน)</div><div class="t-val" id="st-expiring">–</div></div>
+          <div class="tile crit"><div class="t-ic" id="ic-expired"></div><div class="t-lab">หมดอายุแล้ว</div><div class="t-val" id="st-expired">–</div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>ใกล้หมดอายุเร็วนี้</h2></div>
+          <div id="expList"><div class="empty">กำลังโหลด…</div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>เอเจนต์ทั้งหมด</h2></div>
+          <div id="dashAgents"></div>
+        </div>
+      </section>
+
+      <!-- บริการ -->
+      <section class="view" id="v-services">
+        <div class="page-head">
+          <h1>บริการ</h1>
+          <div class="toolbar">
+            <div class="search"><span id="ic-search"></span><input id="svcQuery" placeholder="ค้นหา ลูกค้า/domain/โปรแกรม/ref…" style="width:280px"></div>
+            <select id="svcStatus">
+              <option value="all">ทั้งหมด</option><option value="active">ใช้งานอยู่</option>
+              <option value="expiring">ใกล้หมดอายุ</option><option value="expired">หมดอายุ</option>
+            </select>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+          <table id="svcTable">
+            <thead><tr><th>ลูกค้า</th><th>โปรแกรม</th><th>Domain</th><th>ผู้ใช้</th><th>หมดอายุ</th><th>มูลค่า</th><th>สถานะ</th><th style="text-align:right"></th></tr></thead>
+            <tbody></tbody>
+          </table>
+          </div>
+          <div class="toolbar" style="margin-top:14px">
+            <button class="btn btn-secondary btn-sm" id="svcPrev"></button>
+            <span class="muted" id="svcPageInfo"></span>
+            <button class="btn btn-secondary btn-sm" id="svcNext"></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ลูกค้า -->
+      <section class="view" id="v-customers">
+        <div class="page-head">
+          <h1>ลูกค้า</h1>
+          <div class="toolbar">
+            <div class="search"><span id="ic-search2"></span><input id="cusQuery" placeholder="ค้นหา ชื่อ/บริษัท/ผู้ติดต่อ/โทร…" style="width:260px"></div>
+            <button class="btn btn-primary" id="cusAdd"></button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+          <table id="cusTable">
+            <thead><tr><th>ชื่อ</th><th>บริษัท/หน่วยงาน</th><th>ผู้ติดต่อ</th><th>โทรศัพท์</th><th>บริการ</th><th style="text-align:right"></th></tr></thead>
+            <tbody></tbody>
+          </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- รายงาน -->
+      <section class="view" id="v-reports">
+        <div class="page-head"><h1>รายงาน</h1></div>
+        <div class="tiles">
+          <div class="tile"><div class="t-ic" id="ic-r1"></div><div class="t-lab">บริการทั้งหมด</div><div class="t-val" id="rpt-total">–</div></div>
+          <div class="tile good"><div class="t-ic" id="ic-r2"></div><div class="t-lab">ใช้งานอยู่</div><div class="t-val" id="rpt-active">–</div></div>
+          <div class="tile warn"><div class="t-ic" id="ic-r3"></div><div class="t-lab">ใกล้หมดอายุ (≤30)</div><div class="t-val" id="rpt-expiring">–</div></div>
+          <div class="tile crit"><div class="t-ic" id="ic-r4"></div><div class="t-lab">หมดอายุแล้ว</div><div class="t-val" id="rpt-expired">–</div></div>
+          <div class="tile"><div class="t-ic" id="ic-r5"></div><div class="t-lab">ลูกค้าทั้งหมด</div><div class="t-val" id="rpt-cust">–</div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>สรุปการเงิน</h2></div>
+          <div class="tiles" style="margin-bottom:0">
+            <div class="tile"><div class="t-ic" id="ic-f1"></div><div class="t-lab">ยอดเรียกเก็บ</div><div class="t-val money" id="fin-invoiced">–</div></div>
+            <div class="tile good"><div class="t-ic" id="ic-f2"></div><div class="t-lab">ได้รับแล้ว</div><div class="t-val money" id="fin-collected">–</div></div>
+            <div class="tile crit"><div class="t-ic" id="ic-f3"></div><div class="t-lab">ค้างชำระ</div><div class="t-val money" id="fin-outstanding">–</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>สรุปการใช้งานตามโปรแกรม</h2></div>
+          <div id="rptPrograms"><div class="empty">กำลังโหลด…</div></div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h2>รายชื่อบริการที่จะหมดอายุใน</h2>
+            <select id="rptDays">
+              <option value="7">7 วัน</option><option value="14">14 วัน</option><option value="30" selected>30 วัน</option>
+              <option value="60">60 วัน</option><option value="90">90 วัน</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" id="rptDl"></button>
+          </div>
+          <div class="table-wrap">
+          <table id="rptTable">
+            <thead><tr><th>ลูกค้า</th><th>โปรแกรม</th><th>Domain</th><th>ผู้ใช้</th><th>อีเมล</th><th>หมดอายุ</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- แจ้งเตือน -->
+      <section class="view" id="v-notifs">
+        <div class="page-head"><h1>ประวัติการแจ้งเตือน</h1></div>
+        <div class="card">
+          <div class="table-wrap">
+          <table id="ntfTable">
+            <thead><tr><th>เวลา</th><th>Service</th><th>ประเภท</th><th>ส่งถึง</th><th>สถานะ</th><th>รายละเอียด</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- สมุดบันทึก -->
+      <section class="view" id="v-journal">
+        <div class="page-head"><h1>สมุดบันทึกกิจกรรม</h1>
+          <button class="btn btn-secondary btn-sm" id="jrRefresh"></button></div>
+        <div class="card"><div id="jrList"></div></div>
+      </section>
+
+      <!-- สถานะระบบ -->
+      <section class="view" id="v-health">
+        <div class="page-head"><h1>สถานะระบบ (multi-agent)</h1></div>
+        <div class="card">
+          <div class="card-head"><h2>ฐานข้อมูล</h2><span id="dbState">–</span>
+            <button class="btn btn-secondary btn-sm" id="hzRefresh"></button></div>
+          <div id="hzAgents"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+</div>
+
+<!-- ================= DRAWER / MODAL / TOAST ================= -->
+<div id="drawerWrap"><div id="drawer" role="dialog" aria-modal="true"></div></div>
+<div id="modalWrap"><div id="modal" role="dialog" aria-modal="true"></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let me = null;
+
+/* =================== icons =================== */
+const ICONS = {
+  dashboard:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  reports:'<path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="7" rx="1"/><rect x="12" y="6" width="3" height="11" rx="1"/><rect x="17" y="13" width="3" height="4" rx="1"/>',
+  customers:'<path d="M16 21a5 5 0 0 0-8 0"/><circle cx="12" cy="8" r="3.5"/><path d="M4 21v-1a6 6 0 0 1 6-6h4"/>',
+  services:'<path d="M12 3 3 7.5 12 12l9-4.5z"/><path d="M3 12l9 4.5 9-4.5"/><path d="M3 16.5 12 21l9-4.5"/>',
+  notif:'<path d="M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+  journal:'<path d="M4 5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h8M8 11h8M8 15h5"/>',
+  health:'<path d="M3 12h4l2-6 4 12 2-6h6"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+  add:'<path d="M12 5v14M5 12h14"/>',
+  chevL:'<path d="m15 6-6 6 6 6"/>',
+  chevR:'<path d="m9 6 6 6-6 6"/>',
+  down:'<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>',
+  edit:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  trash:'<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/>',
+  eye:'<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="3"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  refresh:'<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/>',
+  renew:'<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  moon:'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+  money:'<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="3"/>',
+  wallet:'<path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M16 12h4"/>',
+  checkcircle:'<circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  users:'<circle cx="9" cy="8" r="3.5"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M21 20a6 6 0 0 0-5-5.9"/>',
+  logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
+  box:'<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/>',
+};
+function icon(name, size = 18) {
+  return `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
+}
+function setIcon(el, name, size = 18) { if (el) el.innerHTML = icon(name, size); }
+
+/* =================== theme =================== */
+try { const saved = localStorage.getItem('crm-theme'); if (saved === 'dark' || saved === 'light') document.documentElement.dataset.theme = saved; } catch (e) {}
+function applyThemeIcon() {
+  const dark = document.documentElement.dataset.theme === 'dark';
+  setIcon($('#themeBtn'), dark ? 'sun' : 'moon');
+  document.querySelector('meta[name="theme-color"]').setAttribute('content', dark ? '#0f1419' : '#f6f7f9');
+}
+$('#themeBtn').onclick = () => {
+  const cur = document.documentElement.dataset.theme || 'light';
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('crm-theme', next); } catch (e) {}
+  applyThemeIcon();
+};
+applyThemeIcon();
+
+/* =================== static icons in markup =================== */
+setIcon($('#ic-all'), 'services', 18); setIcon($('#ic-active'), 'checkcircle', 18);
+setIcon($('#ic-expiring'), 'clock', 18); setIcon($('#ic-expired'), 'box', 18);
+setIcon($('#ic-r1'), 'services', 18); setIcon($('#ic-r2'), 'checkcircle', 18);
+setIcon($('#ic-r3'), 'clock', 18); setIcon($('#ic-r4'), 'box', 18); setIcon($('#ic-r5'), 'users', 18);
+setIcon($('#ic-f1'), 'wallet', 18); setIcon($('#ic-f2'), 'wallet', 18); setIcon($('#ic-f3'), 'money', 18);
+setIcon($('#ic-search'), 'search', 16); setIcon($('#ic-search2'), 'search', 16);
+setIcon($('#cusAdd'), 'add', 16);
+setIcon($('#svcPrev'), 'chevL', 16); setIcon($('#svcNext'), 'chevR', 16);
+setIcon($('#rptDl'), 'down', 16); setIcon($('#jrRefresh'), 'refresh', 16); setIcon($('#hzRefresh'), 'refresh', 16);
+$('#cusAdd').insertAdjacentText('beforeend', ' เพิ่มลูกค้า');
+$('#svcPrev').insertAdjacentText('beforeend', ' ก่อนหน้า'); $('#svcNext').insertAdjacentText('beforeend', ' ถัดไป');
+$('#rptDl').insertAdjacentText('beforeend', ' ดาวน์โหลด CSV'); $('#jrRefresh').insertAdjacentText('beforeend', ' รีเฟรช');
+$('#hzRefresh').insertAdjacentText('beforeend', ' รีเฟรช');
+setIcon($('#logoutBtn'), 'logout', 16);
+
+/* =================== sidebar nav =================== */
+const NAV = [
+  { group:'ภาพรวม', items:[ {v:'dash',label:'แดชบอร์ด',ic:'dashboard'}, {v:'reports',label:'รายงาน',ic:'reports'} ]},
+  { group:'ลูกค้าและบริการ', items:[ {v:'customers',label:'ลูกค้า',ic:'customers'}, {v:'services',label:'บริการ',ic:'services'} ]},
+  { group:'ระบบ', items:[ {v:'notifs',label:'แจ้งเตือน',ic:'notif'}, {v:'journal',label:'สมุดบันทึก',ic:'journal'}, {v:'health',label:'สถานะระบบ',ic:'health'} ]},
+];
+function renderNav() {
+  $('#nav').innerHTML = NAV.map(g => `<div class="nav-group">
+      <div class="nav-label">${g.group}</div>
+      ${g.items.map(it => `<button class="nav-item" data-v="${it.v}">${icon(it.ic,18)}<span>${it.label}</span></button>`).join('')}
+    </div>`).join('');
+  $('#nav').addEventListener('click', e => { const b = e.target.closest('.nav-item'); if (b) go(b.dataset.v); });
+}
+renderNav();
+
+/* =================== API helper =================== */
+async function api(path, opts = {}) {
+  const r = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts });
+  if (r.status === 401) { showLogin(); throw new Error('ยังไม่ได้เข้าสู่ระบบ'); }
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || ('HTTP ' + r.status));
+  return data;
+}
+function toast(msg, ok = true) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(t._tm); t._tm = setTimeout(() => t.classList.remove('on'), 2300);
+}
+const fmtDate = d => { if (!d) return '–'; const t = new Date(d); if (isNaN(t.getTime()) || t.getFullYear() < 1970) return '–'; return t.toLocaleDateString('th-TH', { year:'numeric', month:'short', day:'numeric' }); };
+const fmtTime = d => new Date(d).toLocaleString('th-TH', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+const fmtMoney = n => (n == null || isNaN(n)) ? '–' : new Intl.NumberFormat('th-TH', { style:'currency', currency:'THB', maximumFractionDigits:2 }).format(n);
+const svcDate = d => { if (!d) return ''; const s = String(d); return s.startsWith('0001-01-01') ? '' : s.slice(0,10); };
+function emptyState(title, sub, ic='search') {
+  return `<div class="empty"><div class="e-ic">${icon(ic,26)}</div><div class="e-t">${title}</div>${sub ? `<div class="e-s">${sub}</div>` : ''}</div>`;
+}
+function svcStatusChips(v) {
+  const chips = [];
+  let p = ['ยังไม่จ่าย','c-crit'];
+  if (v.price > 0 && v.amount_paid > 0 && v.amount_paid < v.price) p = ['จ่ายบางส่วน','c-warn'];
+  else if (v.price > 0 && v.amount_paid >= v.price) p = ['ได้เงินแล้ว','c-good'];
+  chips.push(p);
+  if (v.renew_status === 'renewed') chips.push(['ต่ออายุแล้ว','c-good']);
+  return chips.map(([l,c]) => `<span class="chip ${c}"><i></i>${l}</span>`).join('');
+}
+function daysBadge(dl) {
+  if (dl == null || dl === undefined) return '<span class="muted">ไม่ระบุ</span>';
+  if (dl < 0)  return `<span class="badge b-crit"><i></i>หมดอายุ ${-dl} วัน</span>`;
+  if (dl <= 7) return `<span class="badge b-crit"><i></i>เหลือ ${dl} วัน</span>`;
+  if (dl <= 30) return `<span class="badge b-warn"><i></i>เหลือ ${dl} วัน</span>`;
+  return `<span class="badge b-good"><i></i>เหลือ ${dl} วัน</span>`;
+}
+function stateBadge(st) {
+  const map = { running:['b-good','ทำงานอยู่'], restarting:['b-warn','กำลังรีสตาร์ท'], stopped:['b-crit','หยุด'] };
+  const [cls, txt] = map[st] || ['b-info', st];
+  return `<span class="badge ${cls}"><i></i>${txt}</span>`;
+}
+
+/* =================== views =================== */
+function showLogin() { $('#appView').style.display = 'none'; $('#loginView').style.display = 'flex'; me = null; }
+function showApp() {
+  $('#loginView').style.display = 'none'; $('#appView').style.display = 'block';
+  $('#meName').textContent = me ? me.username : '';
+  $('#meRole').textContent = me ? (me.role === 'admin' ? 'ผู้ดูแลระบบ' : 'ผู้ใช้') : '';
+  $('#meAvatar').textContent = me ? (me.username[0] || '?').toUpperCase() : '?';
+  $('#cusAdd').style.display = (me && me.role === 'admin') ? '' : 'none';
+  routeFromHash();
+}
+const VALID_VIEWS = ['dash','services','customers','reports','notifs','journal','health'];
+function go(v) {
+  if (!VALID_VIEWS.includes(v)) v = 'dash';
+  document.querySelectorAll('.view').forEach(x => x.classList.remove('on'));
+  $('#v-' + v).classList.add('on');
+  document.querySelectorAll('#nav .nav-item').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  if (('#' + v) !== location.hash && !location.hash.startsWith('#/' + v)) { try { history.replaceState(null,'','#/'+v); } catch(e){} }
+  ({ dash: loadDashboard, services: () => loadServices(true), customers: loadCustomers,
+     reports: loadReports, notifs: loadNotifications, journal: loadJournal, health: loadHealth })[v]();
+}
+function routeFromHash() {
+  const v = (location.hash || '').replace(/^#\/?/, '') || 'dash';
+  go(v);
+}
+window.addEventListener('hashchange', routeFromHash);
+
+/* =================== login/logout =================== */
+$('#liBtn').onclick = async () => {
+  $('#loginErr').classList.remove('on'); $('#liBtn').disabled = true;
+  $('#liBtn').innerHTML = '<span class="spin"></span> กำลังตรวจสอบ';
+  try {
+    const d = await api('/api/login', { method:'POST', body: JSON.stringify({ username: $('#liUser').value.trim(), password: $('#liPass').value }) });
+    me = await api('/api/me'); showApp();
+  } catch (err) { $('#loginErr').textContent = err.message; $('#loginErr').classList.add('on'); }
+  $('#liBtn').disabled = false; $('#liBtn').textContent = 'เข้าสู่ระบบ';
+};
+$('#liPass').addEventListener('keydown', e => { if (e.key === 'Enter') $('#liBtn').click(); });
+$('#logoutBtn').onclick = async () => { try { await api('/api/logout', { method:'POST' }); } catch (e) {} showLogin(); };
+
+/* =================== dashboard =================== */
+async function loadDashboard() {
+  const [all, active, expiring, expired] = await Promise.all([
+    api('/api/services?status=all&page_size=1'), api('/api/services?status=active&page_size=1'),
+    api('/api/services?status=expiring&page_size=1'), api('/api/services?status=expired&page_size=1')]);
+  $('#st-all').textContent = all.total.toLocaleString();
+  $('#st-active').textContent = active.total.toLocaleString();
+  $('#st-expiring').textContent = expiring.total.toLocaleString();
+  $('#st-expired').textContent = expired.total.toLocaleString();
+  const soon = await api('/api/services?status=expiring&page_size=8');
+  $('#expList').innerHTML = soon.items.length ? soon.items.map(v => `
+    <div class="journalItem">${daysBadge(v.days_left)}
+      <span class="cell-main">${esc(v.program_name)}</span>
+      <span class="muted">${esc(v.domain)}</span>
+      <span class="grow"></span><span class="muted">${esc(v.customer_name)}</span></div>`).join('')
+    : emptyState('ไม่มีบริการที่ใกล้หมดอายุ', 'ทุกอย่างยังอยู่ในช่วงอายุใช้งาน', 'checkcircle');
+  refreshHealth();
+}
+async function refreshHealth() {
+  let hz; try { hz = await fetch('/healthz').then(r => r.json()); } catch (e) { return; }
+  $('#dbState').innerHTML = hz.database ? stateBadge('running').replace('ทำงานอยู่','เชื่อมต่อได้') : stateBadge('stopped');
+  const rows = hz.agents.map(a => `<div class="agentCard"><span class="cell-main">${esc(a.name)}</span>${stateBadge(a.state)}
+    <span class="muted">รีสตาร์ท ${a.restarts} ครั้ง</span><span class="muted">ตรวจล่าสุด ${a.last_check ? fmtTime(a.last_check) : '–'}</span>
+    ${a.last_error ? `<span class="badge b-crit"><i></i>${esc(a.last_error)}</span>` : ''}</div>`).join('');
+  $('#hzAgents').innerHTML = rows || emptyState('ยังไม่มีเอเจนต์', '', 'box');
+  $('#dashAgents').innerHTML = rows;
+}
+async function loadHealth() { await refreshHealth(); }
+$('#hzRefresh').onclick = refreshHealth;
+
+/* =================== services =================== */
+const svc = { query:'', status:'all', page:1, pageSize:20 };
+let svcDeb;
+$('#svcQuery').addEventListener('input', e => { clearTimeout(svcDeb); svcDeb = setTimeout(() => { svc.query = e.target.value; svc.page = 1; loadServices(); }, 300); });
+$('#svcStatus').addEventListener('change', e => { svc.status = e.target.value; svc.page = 1; loadServices(); });
+$('#svcPrev').onclick = () => { if (svc.page > 1) { svc.page--; loadServices(); } };
+$('#svcNext').onclick = () => { svc.page++; loadServices(); };
+async function loadServices(reset) {
+  if (reset) { svc.page = 1; svc.query = $('#svcQuery').value; svc.status = $('#svcStatus').value; }
+  const d = await api(`/api/services?query=${encodeURIComponent(svc.query)}&status=${svc.status}&page=${svc.page}&page_size=${svc.pageSize}`);
+  const tb = $('#svcTable tbody');
+  tb.innerHTML = d.items.length ? d.items.map(v => `<tr>
+    <td><span class="cell-main">${esc(v.customer_name)}</span></td><td>${esc(v.program_name)}</td>
+    <td class="muted">${esc(v.domain)}</td><td class="muted">${esc(v.username)}</td>
+    <td>${daysBadge(v.days_left)}<div class="sub">${fmtDate(v.registered_to)}</div></td>
+    <td class="money">${fmtMoney(v.price)}</td>
+    <td class="svc-status">${svcStatusChips(v)}</td>
+    <td><div class="t-actions">
+      <button class="btn btn-icon btn-xs" title="รายละเอียด" aria-label="รายละเอียด" onclick="editService(${v.id})">${icon('edit',15)}</button>
+      <button class="btn btn-icon btn-xs" title="ดูรหัสผ่าน" aria-label="ดูรหัสผ่าน" onclick="revealPassword(${v.id}, this)">${icon('eye',15)}</button>
+    </div></td></tr>`).join('') : '<tr><td colspan="8" class="empty">'+emptyState('ไม่พบข้อมูล', 'ลองเปลี่ยนเงื่อนไขหรือคำค้นหา')+'</td></tr>';
+  const maxPage = Math.max(1, Math.ceil(d.total / d.page_size));
+  svc.page = Math.min(svc.page, maxPage);
+  $('#svcPageInfo').textContent = `หน้า ${svc.page}/${maxPage} — ทั้งหมด ${d.total} รายการ`;
+}
+window.revealPassword = async (id, btn) => {
+  const old = btn.innerHTML; btn.disabled = true;
+  try {
+    const d = await api(`/api/services/${id}/password`);
+    modal(`
+      <div class="m-head"><h2>รหัสผ่านของบริการ #${id}</h2></div>
+      <div class="m-body">
+        <div style="font-family:var(--font-mono);font-size:16px;background:var(--surface2);border-radius:10px;padding:14px 16px">${esc(d.password)}</div>
+      </div>
+      <div class="m-foot"><button class="btn btn-secondary" onclick="closeModal()">ปิด</button></div>`);
+  } catch (e) { toast(e.message, false); }
+  btn.disabled = false; btn.innerHTML = old;
+};
+
+/* =================== service detail (drawer) =================== */
+function reloadCurrentView() {
+  const av = document.querySelector('.view.on'); if (!av) return;
+  if (av.id === 'v-services') return loadServices();
+  if (av.id === 'v-customers') return loadCustomers();
+  if (av.id === 'v-reports') return loadReports();
+}
+window.editService = async id => {
+  if (!id) { window.editCustomer(undefined); return; }
+  let s; try { s = await api('/api/services/' + id); } catch (e) { toast(e.message, false); return; }
+  const opt = (cur, map) => map.map(([v,l]) => `<option value="${v}"${v === cur ? ' selected' : ''}>${l}</option>`).join('');
+  drawer(`<div class="d-head"><h2>รายละเอียดบริการ #${id}</h2><span class="muted">${esc(s.customer_name)}</span></div>
+    <div class="d-body grid2">
+      <div class="field"><label>โปรแกรม <span class="req">*</span></label><input id="dProg" value="${esc(s.program_name)}"></div>
+      <div class="field"><label>Domain</label><input id="dDom" value="${esc(s.domain)}" spellcheck="false"></div>
+      <div class="field"><label>ผู้ใช้</label><input id="dUser" value="${esc(s.username)}" spellcheck="false"></div>
+      <div class="field"><label>รหัสผ่าน</label><input id="dPass" type="password" placeholder="(ว่าง = คงเดิม)"></div>
+      <div class="field"><label>เริ่มใช้</label><input id="dFrom" type="date" value="${svcDate(s.registered_from)}"></div>
+      <div class="field"><label>หมดอายุ</label><input id="dTo" type="date" value="${svcDate(s.registered_to)}"></div>
+      <div class="field"><label>ref ใบเสนอราคา</label><input id="dRefQuote" value="${esc(s.ref_quotation)}" spellcheck="false"></div>
+      <div class="field"><label>ref ใบแจ้งหนี้</label><input id="dRefInv" value="${esc(s.ref_invoice)}" spellcheck="false"></div>
+      <div class="field"><label>มูลค่า (บาท)</label><input id="dPrice" type="number" inputmode="decimal" step="0.01" min="0" value="${s.price || 0}"></div>
+      <div class="field"><label>ยอดที่ได้รับแล้ว (บาท)</label><input id="dPaid" type="number" inputmode="decimal" step="0.01" min="0" value="${s.amount_paid || 0}"></div>
+      <div class="field"><label>วันที่ได้รับเงิน</label><input id="dPaidDate" type="date" value="${svcDate(s.paid_date)}"></div>
+      <div class="field"><label>สถานะใบเสนอราคา</label><select id="dQuoteStatus">${opt(s.quote_status, [['none','ยังไม่ยื่น'],['sent','ยื่นแล้ว'],['approved','ลูกค้ารับแล้ว']])}</select></div>
+      <div class="field"><label>วันที่ยื่นใบเสนอราคา</label><input id="dQuoteDate" type="date" value="${svcDate(s.quote_date)}"></div>
+      <div class="field"><label>สถานะการต่ออายุ</label><select id="dRenew">${opt(s.renew_status, [['none','ยังไม่ระบุ'],['renewed','ต่ออายุแล้ว']])}</select></div>
+      <div class="field full"><label>หมายเหตุ</label><textarea id="dNotes" rows="3">${esc(s.notes)}</textarea></div>
+    </div>
+    <div class="d-foot">
+      <button class="btn btn-secondary" id="dRenewBtn" style="margin-right:auto">${icon('renew',16)} ต่ออายุ + 1 ปี</button>
+      <button class="btn btn-ghost" onclick="closeDrawer()">ยกเลิก</button>
+      <button class="btn btn-primary" id="dSave">บันทึก</button>
+    </div>`);
+  $('#dRenewBtn').onclick = () => { const t = new Date(); t.setFullYear(t.getFullYear()+1); $('#dTo').value = t.toISOString().slice(0,10); $('#dRenew').value = 'renewed'; $('#dTo').focus(); };
+  $('#dSave').onclick = async () => {
+    const b = $('#dSave'); b.disabled = true; b.innerHTML = '<span class="spin"></span> บันทึก';
+    const body = JSON.stringify({ program_name:$('#dProg').value, domain:$('#dDom').value, username:$('#dUser').value, password:$('#dPass').value,
+      registered_from:$('#dFrom').value||null, registered_to:$('#dTo').value||null, ref_quotation:$('#dRefQuote').value, ref_invoice:$('#dRefInv').value,
+      price:Number($('#dPrice').value||0), amount_paid:Number($('#dPaid').value||0), paid_date:$('#dPaidDate').value||null,
+      quote_status:$('#dQuoteStatus').value, quote_date:$('#dQuoteDate').value||null, renew_status:$('#dRenew').value, notes:$('#dNotes').value });
+    try { await api('/api/services/' + id, { method:'PUT', body }); closeDrawer(); toast('บันทึกรายละเอียดแล้ว'); reloadCurrentView(); }
+    catch (e) { toast(e.message, false); b.disabled = false; b.textContent = 'บันทึก'; }
+  };
+};
+
+/* =================== reports =================== */
+const rpt = { days:30, items:[] };
+async function loadReports() {
+  const s = await api('/api/reports/summary');
+  $('#rpt-total').textContent = s.total_services.toLocaleString();
+  $('#rpt-active').textContent = s.active_services.toLocaleString();
+  $('#rpt-expiring').textContent = s.expiring_services.toLocaleString();
+  $('#rpt-expired').textContent = s.expired_services.toLocaleString();
+  $('#rpt-cust').textContent = s.total_customers.toLocaleString();
+  $('#fin-invoiced').textContent = fmtMoney(s.financial && s.financial.invoiced);
+  $('#fin-collected').textContent = fmtMoney(s.financial && s.financial.collected);
+  $('#fin-outstanding').textContent = fmtMoney(s.financial && s.financial.outstanding);
+  const max = Math.max(1, ...s.programs.map(p => p.count));
+  $('#rptPrograms').innerHTML = s.programs.length ? s.programs.map(p => `
+    <div class="rpt-bar-row"><span class="rpt-bar-name">${esc(p.program || '(ไม่ระบุโปรแกรม)')}</span>
+      <div class="rpt-bar-track"><div class="rpt-bar-fill" style="width:${(p.count/max*100).toFixed(1)}%"></div></div>
+      <span class="rpt-bar-count">${p.count}</span></div>`).join('')
+    : emptyState('ยังไม่มีข้อมูลบริการ', '', 'reports');
+  await loadReportExpiring();
+}
+async function loadReportExpiring() {
+  const d = await api('/api/reports/expiring?days=' + rpt.days);
+  rpt.items = d.items;
+  $('#rptTable tbody').innerHTML = d.items.length ? d.items.map(v => `<tr>
+    <td><span class="cell-main">${esc(v.customer_name)}</span></td><td>${esc(v.program_name)}</td>
+    <td class="muted">${esc(v.domain)}</td><td class="muted">${esc(v.username)}</td><td class="muted">${esc(v.email)}</td>
+    <td>${daysBadge(v.days_left)}<div class="sub">${fmtDate(v.registered_to)}</div></td></tr>`).join('')
+  : '<tr><td colspan="6" class="empty">'+emptyState('ไม่มีบริการที่หมดอายุในระยะนี้','ลองเพิ่มช่วงวัน','clock')+'</td></tr>';
+}
+$('#rptDays').addEventListener('change', e => { rpt.days = Number(e.target.value); loadReportExpiring(); });
+$('#rptDl').onclick = () => {
+  if (!rpt.items.length) { toast('ไม่มีข้อมูลให้ดาวน์โหลด', false); return; }
+  const head = ['ลูกค้า','โปรแกรม','Domain','ผู้ใช้','อีเมล','หมดอายุ','เหลือ(วัน)'];
+  const rows = rpt.items.map(v => [v.customer_name, v.program_name, v.domain, v.username, v.email, fmtDate(v.registered_to), v.days_left]);
+  const csv = '\uFEFF' + [head, ...rows].map(r => r.map(x => `"${String(x ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' })); a.download = `CRM_expiring_${rpt.days}d.csv`; a.click(); URL.revokeObjectURL(a.href);
+};
+
+/* =================== customers =================== */
+let cusDeb;
+$('#cusQuery').addEventListener('input', e => { clearTimeout(cusDeb); cusDeb = setTimeout(() => loadCustomers(e.target.value), 300); });
+async function loadCustomers(q) {
+  const d = await api('/api/customers?query=' + encodeURIComponent(q ?? $('#cusQuery').value));
+  $('#cusTable tbody').innerHTML = d.items.length ? d.items.map(c => `<tr>
+    <td><span class="cell-main">${esc(c.name)}</span></td><td>${esc(c.company)}</td><td class="muted">${esc(c.contact)}</td>
+    <td class="muted">${esc(c.phone)}</td><td class="num">${c.service_count}</td>
+    <td><div class="t-actions">
+      <button class="btn btn-icon btn-xs" title="ดู" aria-label="ดู" onclick="viewCustomer(${c.id})">${icon('eye',15)}</button>
+      ${me?.role === 'admin' ? `<button class="btn btn-icon btn-xs" title="แก้ไข" aria-label="แก้ไข" onclick="editCustomer(${c.id})">${icon('edit',15)}</button>
+      <button class="btn btn-icon btn-xs" title="ลบ" aria-label="ลบ" onclick="deleteCustomer(${c.id}, '${esc(c.name).replace(/'/g,"\\'")}')">${icon('trash',15)}</button>` : ''}
+    </div></td></tr>`).join('')
+  : '<tr><td colspan="6" class="empty">'+emptyState('ไม่พบข้อมูล','ลองเปลี่ยนคำค้นหา','search')+'</td></tr>';
+}
+window.viewCustomer = async id => {
+  const d = await api('/api/customers/' + id);
+  const c = d.customer;
+  modal(`<div class="m-head"><h2>${esc(c.name)}</h2><div class="muted" style="margin-top:2px">${esc(c.company) || '–'}</div></div>
+    <div class="m-body">
+      <div class="grid2" style="row-gap:10px">
+        <div><div class="muted">ผู้ติดต่อ</div><div>${esc(c.contact) || '–'}</div></div>
+        <div><div class="muted">เบอร์โทร</div><div class="num">${esc(c.phone) || '–'}</div></div>
+        <div><div class="muted">อีเมล</div><div>${esc(c.email) || '–'}</div></div>
+        <div><div class="muted">เลขผู้เสียภาษี</div><div class="num">${esc(c.tax_id) || '–'}</div></div>
+        <div class="grid2"><div class="muted">ที่อยู่</div><div>${esc(c.address) || '–'}</div></div>
+      </div>
+      <div style="margin-top:16px;font-weight:600">บริการที่ใช้ (${d.services.length})</div>
+      <div class="table-wrap" style="margin-top:6px"><table>
+        <thead><tr><th>โปรแกรม</th><th>Domain</th><th>ผู้ใช้</th><th>หมดอายุ</th><th></th></tr></thead><tbody>
+        ${d.services.map(s => `<tr><td>${esc(s.program_name)}</td><td class="muted">${esc(s.domain)}</td><td class="muted">${esc(s.username)}</td><td>${fmtDate(s.registered_to)}</td>
+          <td><button class="btn btn-icon btn-xs" title="ดู/แก้ไข" aria-label="ดู/แก้ไข" onclick="editService(${s.id})">${icon('edit',15)}</button></td></tr>`).join('') || '<tr><td colspan="5" class="empty">ไม่มี</td></tr>'}
+        </tbody></table></div>
+    </div>
+    <div class="m-foot"><button class="btn btn-secondary" onclick="closeModal()">ปิด</button></div>`);
+};
+window.deleteCustomer = async (id, name) => {
+  if (!confirm(`ลบลูกค้า "${name}" และบริการทั้งหมดของเขา?`)) return;
+  try { await api('/api/customers/' + id, { method:'DELETE' }); toast('ลบแล้ว'); loadCustomers(); } catch (e) { toast(e.message, false); }
+};
+$('#cusAdd').onclick = () => editCustomer(null);
+
+/* =================== customer form (drawer) =================== */
+window.editCustomer = async id => {
+  let c = { name:'', company:'', contact:'', email:'', phone:'', address:'', tax_id:'', note:'' }, svcs = [];
+  if (id) { const d = await api('/api/customers/' + id); c = d.customer; svcs = d.services; }
+  const svcRow = (s = {}) => `<div class="svcRow" data-id="${s.id ?? ''}">
+      <div><label>โปรแกรม</label><input class="s-prog" value="${esc(s.program_name)}"></div>
+      <div><label>Domain</label><input class="s-dom" value="${esc(s.domain)}"></div>
+      <div><label>ผู้ใช้</label><input class="s-user" value="${esc(s.username)}"></div>
+      <div><label>รหัสผ่าน</label><input class="s-pass" type="password" placeholder="${id ? '(ว่าง = คงเดิม)' : ''}"></div>
+      <div><label>เริ่มใช้</label><input class="s-from" type="date" value="${(s.registered_from||'').slice(0,10)}"></div>
+      <div><label>หมดอายุ</label><input class="s-to" type="date" value="${(s.registered_to||'').slice(0,10)}"></div>
+      <div>${s.id ? `<button class="btn btn-icon btn-xs" title="รายละเอียด" aria-label="รายละเอียด" onclick="editService(${s.id})">${icon('edit',14)}</button>` : ''}
+        <button class="btn btn-icon btn-xs" title="ลบแถว" aria-label="ลบแถว" onclick="this.closest('.svcRow').remove()">${icon('x',14)}</button></div>
+    </div>`;
+  drawer(`<div class="d-head"><h2>${id ? 'แก้ไขลูกค้า' : 'เพิ่มลูกค้าใหม่'}</h2></div>
+    <div class="d-body grid2">
+      <div class="field"><label>ชื่อ <span class="req">*</span></label><input id="fName" value="${esc(c.name)}"></div>
+      <div class="field"><label>บริษัท/หน่วยงาน</label><input id="fCompany" value="${esc(c.company)}"></div>
+      <div class="field"><label>ผู้ติดต่อ</label><input id="fContact" value="${esc(c.contact)}"></div>
+      <div class="field"><label>เบอร์โทร</label><input id="fPhone" value="${esc(c.phone)}" inputmode="tel" autocomplete="tel" spellcheck="false"></div>
+      <div class="field"><label>อีเมล</label><input id="fEmail" type="email" value="${esc(c.email)}" autocomplete="email" spellcheck="false"></div>
+      <div class="field"><label>เลขผู้เสียภาษี</label><input id="fTax" value="${esc(c.tax_id)}" spellcheck="false"></div>
+      <div class="field full"><label>ที่อยู่</label><textarea id="fAddress" rows="2">${esc(c.address)}</textarea></div>
+      <div class="field full"><label>หมายเหตุ</label><textarea id="fNote" rows="2">${esc(c.note)}</textarea></div>
+      <div class="field full"><label>บริการ</label>
+        <div class="svcBox" id="svcBox">${svcs.map(svcRow).join('')}</div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:8px" id="addSvc">${icon('add',15)} เพิ่มบริการ</button>
+      </div>
+    </div>
+    <div class="d-foot">
+      <button class="btn btn-ghost" onclick="closeDrawer()">ยกเลิก</button>
+      <button class="btn btn-primary" id="fSave">${id ? 'บันทึก' : 'สร้าง'}</button>
+    </div>`);
+  window.addSvcRow = () => $('#svcBox').insertAdjacentHTML('beforeend', svcRow());
+  $('#addSvc').onclick = () => window.addSvcRow();
+  $('#fSave').onclick = async () => {
+    const b = $('#fSave'); b.disabled = true; const old = b.textContent; b.innerHTML = '<span class="spin"></span> ' + old;
+    const services = [...document.querySelectorAll('#svcBox .svcRow')].map(r => ({
+      id: r.dataset.id ? Number(r.dataset.id) : 0,
+      program_name: r.querySelector('.s-prog').value, domain: r.querySelector('.s-dom').value,
+      username: r.querySelector('.s-user').value, password: r.querySelector('.s-pass').value,
+      registered_from: r.querySelector('.s-from').value || null, registered_to: r.querySelector('.s-to').value || null }));
+    const body = JSON.stringify({ name: $('#fName').value, company: $('#fCompany').value, contact: $('#fContact').value,
+      email: $('#fEmail').value, phone: $('#fPhone').value, address: $('#fAddress').value, tax_id: $('#fTax').value, note: $('#fNote').value, services });
+    try {
+      if (id) { await api('/api/customers/' + id, { method:'PUT', body }); toast('บันทึกแล้ว'); }
+      else { await api('/api/customers', { method:'POST', body }); toast('สร้างแล้ว'); }
+      closeDrawer(); loadCustomers();
+    } catch (e) { toast(e.message, false); b.disabled = false; b.textContent = old; }
+  };
+};
+
+/* =================== modal / drawer helpers =================== */
+function modal(html) { $('#modal').innerHTML = html; $('#modalWrap').classList.add('on'); }
+window.closeModal = () => $('#modalWrap').classList.remove('on');
+function drawer(html) { $('#drawer').innerHTML = html; $('#drawerWrap').classList.add('on'); }
+window.closeDrawer = () => $('#drawerWrap').classList.remove('on');
+for (const [wrap, close] of [['#modalWrap', closeModal], ['#drawerWrap', closeDrawer]]) {
+  $(wrap).addEventListener('click', e => { if (e.target === $(wrap)) close(); });
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeDrawer(); } });
+
+/* =================== notifications / journal =================== */
+const ntypeTh = { expiring_30:'ล่วงหน้า 30 วัน', expiring_7:'ล่วงหน้า 7 วัน', expiring_1:'ล่วงหน้า 1 วัน', expired:'หมดอายุ' };
+async function loadNotifications() {
+  const d = await api('/api/notifications?limit=50');
+  $('#ntfTable tbody').innerHTML = d.items.length ? d.items.map(n => `<tr>
+    <td class="num muted">${fmtTime(n.created_at)}</td><td class="num">#${n.service_id}</td><td>${esc(ntypeTh[n.type] || n.type)}</td>
+    <td class="muted">${esc(n.email_to)}</td>
+    <td><span class="chip ${n.status === 'sent' ? 'c-good' : n.status === 'simulated' ? 'c-info' : 'c-crit'}"><i></i>${esc(n.status)}</span></td>
+    <td class="muted">${esc(n.detail)}</td></tr>`).join('')
+  : '<tr><td colspan="6" class="empty">'+emptyState('ยังไม่มีการแจ้งเตือน','','notif')+'</td></tr>';
+}
+async function loadJournal() {
+  const d = await api('/api/journal?limit=100');
+  $('#jrList').innerHTML = d.items.length ? d.items.slice().reverse().map(e => `
+    <div class="journalItem"><time>${fmtTime(e.time)}</time><span class="kind">${esc(e.kind)}</span><span>${esc(e.detail)}</span></div>`).join('')
+  : emptyState('ยังไม่มีบันทึก','','journal');
+}
+$('#jrRefresh').onclick = loadJournal;
+
+/* =================== init =================== */
+(async () => {
+  try { me = await api('/api/me'); showApp(); } catch (e) { showLogin(); }
+})();
+setInterval(() => { if (me) refreshHealth().catch(() => {}); }, 15000);
+</script>
+</body>
+</html>
